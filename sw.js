@@ -1,9 +1,10 @@
-const CACHE = "huwords-v2";
+const CACHE = "huwords-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./worldList_1.JSON"
+  "./worldList_1.JSON",
+  "./FruitsAndVegetables.JSON"
 ];
 
 self.addEventListener("install", (e) => {
