@@ -1,0 +1,867 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HU Words</title>
+
+  <style>
+    :root{
+      --bg:#f4f6f8;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --shadow:0 6px 18px rgba(0,0,0,.06);
+      --shadow2:0 2px 8px rgba(0,0,0,.05);
+
+      --primary:#22c55e;
+      --primaryText:#ffffff;
+      --chip:#eef1f4;
+
+      --dangerBg:#ffefef;
+      --dangerText:#b91c1c;
+
+      --star:#f59e0b;
+    }
+
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --card:#0f1b2d;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:#20324b;
+      --shadow:0 8px 22px rgba(0,0,0,.35);
+      --shadow2:0 4px 14px rgba(0,0,0,.25);
+
+      --chip:#16263f;
+      --dangerBg:#3b1620;
+      --dangerText:#fecaca;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    }
+
+    .app{
+      max-width:460px;
+      margin:0 auto;
+      padding:14px 14px 24px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 2px 14px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .title h1{
+      margin:0;
+      font-size:22px;
+      line-height:1.1;
+      letter-spacing:.2px;
+    }
+    .subtitle{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .toggles{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 10px;
+      border-radius:12px;
+      background:var(--chip);
+      border:1px solid var(--border);
+      user-select:none;
+      font-size:14px;
+    }
+    .chip input{ width:18px; height:18px; }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      padding:12px;
+      margin-bottom:12px;
+    }
+
+    .controls{
+      display:grid;
+      gap:10px;
+    }
+
+    select,input{
+      width:100%;
+      padding:12px;
+      font-size:16px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text);
+      outline:none;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr 84px;
+      gap:8px;
+      align-items:center;
+    }
+
+    .buttons{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+
+    button{
+      padding:12px;
+      font-size:15px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text);
+      cursor:pointer;
+    }
+
+    button:active{ transform:translateY(1px); }
+
+    .btn-main{
+      background:var(--primary);
+      border-color:transparent;
+      color:var(--primaryText);
+      font-weight:700;
+    }
+
+    .btn-secondary{
+      background:transparent;
+    }
+
+    .btn-clear{
+      background:var(--dangerBg);
+      color:var(--dangerText);
+      border-color:transparent;
+      font-weight:600;
+    }
+
+    .addRow{
+      display:grid;
+      grid-template-columns:1fr 92px;
+      gap:8px;
+      align-items:center;
+    }
+
+    .progress{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .stat{
+      font-size:13px;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:12px;
+      background:transparent;
+      border:1px dashed var(--border);
+    }
+    .progressActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn-link{
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:12px;
+      background:transparent;
+      border:1px solid var(--border);
+      color:var(--muted);
+    }
+
+    .words{
+      display:grid;
+      gap:10px;
+    }
+
+    .wordCard{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:var(--shadow2);
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .wordTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+
+    .wordText{
+      font-size:20px;
+      line-height:1.2;
+      font-weight:650;
+      word-break:break-word;
+      padding-right:52px;
+      min-height:28px;
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .starBtn{
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--border);
+      background:transparent;
+      font-size:20px;
+      line-height:1;
+    }
+
+    .starBtn.fav{
+      border-color:rgba(245,158,11,.35);
+      background:rgba(245,158,11,.12);
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:transparent;
+      font-size:12px;
+      color:var(--muted);
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+    }
+
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:28px 10px;
+      border:1px dashed var(--border);
+      border-radius:16px;
+      background:transparent;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme]){ /* если пользователь не выбирал вручную */
+        /* ничего — мы управляем темой через JS, но это оставим без сюрпризов */
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <div class="topbar">
+      <div class="title">
+        <h1>HU Words</h1>
+        <div class="subtitle" id="countLabel">Loading…</div>
+      </div>
+
+      <div class="toggles">
+        <label class="chip" title="Только избранные">
+          <input type="checkbox" id="onlyFavToggle" />
+          ⭐
+        </label>
+        <label class="chip" title="Тёмная тема">
+          <input type="checkbox" id="themeToggle" />
+          🌙
+        </label>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="controls">
+        <select id="wordlistSelect"></select>
+
+        <div class="row">
+          <input type="number" id="wordCount" value="10" min="1" inputmode="numeric" />
+          <button class="btn-main" id="btnGenerate">Go</button>
+        </div>
+
+        <div class="buttons">
+          <button class="btn-secondary" id="btnHU">HU</button>
+          <button class="btn-secondary" id="btnTranslate">Translate</button>
+          <button class="btn-clear" id="btnClear">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="addRow">
+        <input id="newWord" placeholder="Достаточно: elég" />
+        <button class="btn-secondary" id="btnAdd">Add</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Подсказка: формат <b>слово: перевод</b>. Добавленное хранится на этом устройстве.
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="progress">
+        <div class="stats">
+          <div class="stat" id="statSeen">Seen: 0</div>
+          <div class="stat" id="statFlipped">Flipped: 0</div>
+          <div class="stat" id="statFav">Favorites: 0</div>
+        </div>
+        <div class="progressActions">
+          <button class="btn-link" id="btnResetProgress">Reset progress</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="words" id="output">
+      <div class="empty">Нажми <b>Go</b>, чтобы сгенерировать слова 👆</div>
+    </section>
+  </div>
+
+  <script>
+    /***************
+     * CONFIG
+     ***************/
+    // ВАЖНО: имена файлов должны совпадать 1-в-1 с тем, как они лежат на Cloudflare Pages.
+    // Рекомендация: использовать латиницу и .json (в нижнем регистре).
+    const WORDLIST_FILES = [
+      "worldList_1.JSON",
+      "Группа Еда и напитки.JSON",
+      "Группа Восприятие (видеть, слышать).JSON",
+      "Группа Движение и транспорт.JSON"
+    ];
+
+    /***************
+     * STORAGE KEYS
+     ***************/
+    const STORAGE_LAST = "hw_last_v2";
+    const STORAGE_CUSTOM_PREFIX = "hw_custom__";
+    const STORAGE_FAVS = "hw_favorites_v2";
+    const STORAGE_PROGRESS = "hw_progress_v2";
+    const STORAGE_THEME = "hw_theme_v2";
+    const STORAGE_ONLYFAV = "hw_onlyfav_v2";
+    const STORAGE_LAST_LIST = "hw_last_list_v2";
+    const STORAGE_LAST_COUNT = "hw_last_count_v2";
+
+    /***************
+     * STATE
+     ***************/
+    let selectedList = WORDLIST_FILES[0];
+    let lastGenerated = []; // [{ru: hu}]
+    let currentView = [];   // array of entries currently rendered
+    let favorites = new Set();
+    let progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } }; // per-pair + totals
+
+    /***************
+     * DOM
+     ***************/
+    const selectEl = document.getElementById("wordlistSelect");
+    const outputEl = document.getElementById("output");
+    const countLabel = document.getElementById("countLabel");
+
+    const wordCountEl = document.getElementById("wordCount");
+    const onlyFavToggle = document.getElementById("onlyFavToggle");
+    const themeToggle = document.getElementById("themeToggle");
+
+    const statSeen = document.getElementById("statSeen");
+    const statFlipped = document.getElementById("statFlipped");
+    const statFav = document.getElementById("statFav");
+
+    const btnGenerate = document.getElementById("btnGenerate");
+    const btnHU = document.getElementById("btnHU");
+    const btnTranslate = document.getElementById("btnTranslate");
+    const btnClear = document.getElementById("btnClear");
+    const btnAdd = document.getElementById("btnAdd");
+    const btnResetProgress = document.getElementById("btnResetProgress");
+
+    /***************
+     * HELPERS
+     ***************/
+    function normalizeText(s) {
+      return String(s ?? "").trim();
+    }
+
+    function makePairId(entry) {
+      const ru = normalizeText(Object.keys(entry)[0]);
+      const hu = normalizeText(Object.values(entry)[0]);
+      // стабильный идентификатор пары
+      return (ru + "||" + hu).toLowerCase();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[c]));
+    }
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function readJSON(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function writeJSON(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function parseEntry(input) {
+      const s = normalizeText(input);
+      const idx = s.indexOf(":");
+      if (idx === -1) return null;
+      const left = normalizeText(s.slice(0, idx));
+      const right = normalizeText(s.slice(idx + 1));
+      if (!left || !right) return null;
+      return { [left]: right };
+    }
+
+    function haptic() {
+      // лёгкая вибрация на поддерживаемых устройствах
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+
+    /***************
+     * THEME
+     ***************/
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+        themeToggle.checked = true;
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        themeToggle.checked = false;
+      }
+    }
+
+    /***************
+     * LOAD WORDS
+     ***************/
+    async function loadWords(filename) {
+      const res = await fetch(filename, { cache: "no-store" });
+      if (!res.ok) throw new Error("Cannot load " + filename);
+      const base = await res.json();
+
+      const customKey = STORAGE_CUSTOM_PREFIX + filename;
+      const custom = readJSON(customKey, []);
+      return base.concat(custom);
+    }
+
+    async function updateCount() {
+      try {
+        const words = await loadWords(selectedList);
+        countLabel.textContent = `${words.length} words • ${prettyListName(selectedList)}`;
+      } catch (e) {
+        countLabel.textContent = `Ошибка загрузки списка: ${prettyListName(selectedList)}`;
+      }
+    }
+
+    function prettyListName(filename) {
+      return filename.replace(/\.json$/i, "").replace(/\.JSON$/i, "");
+    }
+
+    /***************
+     * FAVORITES
+     ***************/
+    function loadFavorites() {
+      const arr = readJSON(STORAGE_FAVS, []);
+      favorites = new Set(Array.isArray(arr) ? arr : []);
+    }
+
+    function saveFavorites() {
+      writeJSON(STORAGE_FAVS, Array.from(favorites));
+      updateStats();
+    }
+
+    function isFav(entry) {
+      return favorites.has(makePairId(entry));
+    }
+
+    function toggleFav(entry) {
+      const id = makePairId(entry);
+      if (favorites.has(id)) favorites.delete(id);
+      else favorites.add(id);
+      saveFavorites();
+    }
+
+    /***************
+     * PROGRESS
+     ***************/
+    function loadProgress() {
+      const p = readJSON(STORAGE_PROGRESS, null);
+      if (p && typeof p === "object") progress = p;
+      if (!progress.seen) progress.seen = {};
+      if (!progress.flipped) progress.flipped = {};
+      if (!progress.totals) progress.totals = { seen: 0, flipped: 0 };
+    }
+
+    function saveProgress() {
+      writeJSON(STORAGE_PROGRESS, progress);
+      updateStats();
+    }
+
+    function markSeen(entry) {
+      const id = makePairId(entry);
+      if (!progress.seen[id]) {
+        progress.seen[id] = 1;
+        progress.totals.seen = (progress.totals.seen || 0) + 1;
+        saveProgress();
+      }
+    }
+
+    function markFlipped(entry) {
+      const id = makePairId(entry);
+      if (!progress.flipped[id]) {
+        progress.flipped[id] = 1;
+        progress.totals.flipped = (progress.totals.flipped || 0) + 1;
+        saveProgress();
+      }
+    }
+
+    function resetProgress() {
+      progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
+      saveProgress();
+      // перерисуем, чтобы бейджи/счётчики обновились
+      if (currentView.length) renderCards(currentView, { mode: "ru" });
+    }
+
+    function updateStats() {
+      const seen = progress?.totals?.seen ?? 0;
+      const flipped = progress?.totals?.flipped ?? 0;
+      statSeen.textContent = `Seen: ${seen}`;
+      statFlipped.textContent = `Flipped: ${flipped}`;
+      statFav.textContent = `Favorites: ${favorites.size}`;
+    }
+
+    /***************
+     * RENDER
+     ***************/
+    function renderEmpty(msg) {
+      outputEl.innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
+    }
+
+    // mode: "ru" (показываем RU) | "hu" (показываем HU) | "both" (RU — HU)
+    function renderCards(entries, { mode }) {
+      currentView = entries.slice();
+
+      if (!entries.length) {
+        renderEmpty(onlyFavToggle.checked ? "Пока нет избранных ⭐" : "Пусто. Нажми Go, чтобы сгенерировать слова.");
+        return;
+      }
+
+      const html = entries.map((entry) => {
+        const ru = escapeHtml(Object.keys(entry)[0]);
+        const hu = escapeHtml(Object.values(entry)[0]);
+        const id = makePairId(entry);
+        const favClass = favorites.has(id) ? "fav" : "";
+
+        // стартовая сторона
+        let frontText = ru;
+        let backText = hu;
+        let hint = "Tap → перевод";
+
+        if (mode === "hu") {
+          frontText = hu;
+          backText = ru;
+          hint = "Tap → перевод";
+        } else if (mode === "both") {
+          frontText = `${ru} — ${hu}`;
+          backText = `${ru} — ${hu}`;
+          hint = "Tap → скрыть/показать не нужно";
+        }
+
+        // бейдж прогресса (маленький, чтобы не мешал)
+        const seenMark = progress.seen?.[id] ? "👀" : "";
+        const flipMark = progress.flipped?.[id] ? "🔁" : "";
+
+        return `
+          <div class="wordCard" data-id="${escapeHtml(id)}" data-ru="${ru}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
+            <button class="starBtn ${favClass}" title="Избранное">⭐</button>
+
+            <div class="wordTop">
+              <div>
+                <div class="wordText" data-side="front">${frontText}</div>
+                <div class="hint">${hint}</div>
+              </div>
+            </div>
+
+            <div class="badge">
+              <span class="pill">${seenMark} Seen</span>
+              <span class="pill">${flipMark} Flipped</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      outputEl.innerHTML = html;
+
+      // события
+      outputEl.querySelectorAll(".wordCard").forEach(card => {
+        const id = card.getAttribute("data-id");
+        const mode = card.getAttribute("data-mode");
+
+        const entry = { [card.getAttribute("data-ru")]: card.getAttribute("data-hu") };
+        // Seen фиксируем при первом рендере
+        markSeen(entry);
+
+        const starBtn = card.querySelector(".starBtn");
+        const wordText = card.querySelector(".wordText");
+
+        // ⭐ избранное — отдельный клик, без переворота
+        starBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          haptic();
+          toggleFav(entry);
+          starBtn.classList.toggle("fav", isFav(entry));
+
+          // если включён фильтр "только избранные" — перерендерим текущий вид
+          if (onlyFavToggle.checked) {
+            const filtered = currentView.filter(isFav);
+            renderCards(filtered, { mode });
+          } else {
+            // только обновим бейджи
+            updateStats();
+          }
+        });
+
+        // переворот по тапу на карточку (кроме режима both)
+        card.addEventListener("click", () => {
+          if (mode === "both") return;
+
+          haptic();
+          const ru = card.getAttribute("data-ru");
+          const hu = card.getAttribute("data-hu");
+
+          const isFront = wordText.getAttribute("data-side") === "front";
+          wordText.textContent = isFront ? hu : ru;
+          wordText.setAttribute("data-side", isFront ? "back" : "front");
+
+          // считаем прогресс: впервые перевернул — засчитали
+          if (isFront) markFlipped(entry);
+
+          // обновим маленькие бейджи прямо в карточке
+          const pills = card.querySelectorAll(".pill");
+          if (pills?.length >= 2) {
+            pills[0].textContent = `${progress.seen?.[id] ? "👀" : ""} Seen`;
+            pills[1].textContent = `${progress.flipped?.[id] ? "🔁" : ""} Flipped`;
+          }
+        });
+      });
+
+      updateStats();
+    }
+
+    /***************
+     * ACTIONS
+     ***************/
+    async function generate(mode) {
+      const n = parseInt(wordCountEl.value, 10);
+      if (!Number.isFinite(n) || n <= 0) {
+        alert("Введите корректное число");
+        return;
+      }
+
+      localStorage.setItem(STORAGE_LAST_LIST, selectedList);
+      localStorage.setItem(STORAGE_LAST_COUNT, String(n));
+
+      const words = await loadWords(selectedList);
+      const picked = shuffle(words).slice(0, Math.min(n, words.length));
+
+      lastGenerated = picked;
+      writeJSON(STORAGE_LAST, picked);
+
+      const view = onlyFavToggle.checked ? picked.filter(isFav) : picked;
+      renderCards(view, { mode });
+      await updateCount();
+    }
+
+    function translateLast() {
+      const saved = readJSON(STORAGE_LAST, []);
+      lastGenerated = Array.isArray(saved) ? saved : [];
+      const view = onlyFavToggle.checked ? lastGenerated.filter(isFav) : lastGenerated;
+      renderCards(view, { mode: "both" });
+    }
+
+    function clearOutput() {
+      currentView = [];
+      outputEl.innerHTML = "";
+      renderEmpty("Очищено. Нажми Go, чтобы сгенерировать слова.");
+    }
+
+    async function addWord() {
+      const val = document.getElementById("newWord").value.trim();
+      const entry = parseEntry(val);
+      if (!entry) {
+        alert("Формат: слово: перевод");
+        return;
+      }
+
+      const key = STORAGE_CUSTOM_PREFIX + selectedList;
+      const list = readJSON(key, []);
+      list.push(entry);
+      writeJSON(key, list);
+
+      document.getElementById("newWord").value = "";
+      await updateCount();
+      alert("Добавлено (сохранено на этом устройстве).");
+    }
+
+    /***************
+     * FILTER: ONLY FAVORITES
+     ***************/
+    function applyOnlyFavFilter() {
+      localStorage.setItem(STORAGE_ONLYFAV, onlyFavToggle.checked ? "1" : "0");
+
+      // если сейчас есть показанные слова — фильтруем их, иначе просто поменяем пустой экран
+      if (currentView.length) {
+        const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || "ru";
+        const filtered = onlyFavToggle.checked ? currentView.filter(isFav) : currentView;
+        renderCards(filtered, { mode: modeGuess });
+      } else {
+        renderEmpty(onlyFavToggle.checked ? "Пока нет избранных ⭐" : "Нажми Go, чтобы сгенерировать слова 👆");
+      }
+    }
+
+    /***************
+     * INIT
+     ***************/
+    function initSelect() {
+      selectEl.innerHTML = "";
+      WORDLIST_FILES.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f;
+        opt.textContent = prettyListName(f);
+        selectEl.appendChild(opt);
+      });
+
+      const savedList = localStorage.getItem(STORAGE_LAST_LIST);
+      if (savedList && WORDLIST_FILES.includes(savedList)) selectedList = savedList;
+
+      selectEl.value = selectedList;
+
+      selectEl.addEventListener("change", async () => {
+        selectedList = selectEl.value;
+        localStorage.setItem(STORAGE_LAST_LIST, selectedList);
+        await updateCount();
+        clearOutput();
+      });
+    }
+
+    function initPrefs() {
+      // тема
+      const savedTheme = localStorage.getItem(STORAGE_THEME);
+      if (savedTheme === "dark") applyTheme("dark");
+      else applyTheme("light");
+
+      themeToggle.addEventListener("change", () => {
+        const theme = themeToggle.checked ? "dark" : "light";
+        localStorage.setItem(STORAGE_THEME, theme);
+        applyTheme(theme);
+      });
+
+      // only favorites
+      const onlyFav = localStorage.getItem(STORAGE_ONLYFAV) === "1";
+      onlyFavToggle.checked = onlyFav;
+      onlyFavToggle.addEventListener("change", applyOnlyFavFilter);
+
+      // last count
+      const savedCount = localStorage.getItem(STORAGE_LAST_COUNT);
+      if (savedCount && /^\d+$/.test(savedCount)) wordCountEl.value = savedCount;
+    }
+
+    function bindButtons() {
+      btnGenerate.addEventListener("click", () => generate("ru"));
+      btnHU.addEventListener("click", () => generate("hu"));
+      btnTranslate.addEventListener("click", translateLast);
+      btnClear.addEventListener("click", clearOutput);
+      btnAdd.addEventListener("click", addWord);
+      btnResetProgress.addEventListener("click", () => {
+        if (confirm("Сбросить прогресс?")) resetProgress();
+      });
+
+      wordCountEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") generate("ru");
+      });
+    }
+
+    window.addEventListener("load", async () => {
+      loadFavorites();
+      loadProgress();
+      initPrefs();
+      initSelect();
+      bindButtons();
+      updateStats();
+      await updateCount();
+
+      // Если есть сохранённые слова — можно не показывать автоматически, чтобы не мешать
+      // Но если хочешь автозагрузку последнего — раскомментируй:
+      // translateLast();
+    });
+  </script>
+</body>
+</html>
+```
