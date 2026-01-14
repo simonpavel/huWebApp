@@ -1,14 +1,9 @@
-const CACHE = "huwords-v1";
+const CACHE = "huwords-v2";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
   "./manifest.json",
-  // добавь сюда те JSON, которые реально используешь:
-  "./worldList_1.JSON",
-  "./Группа Восприятие (видеть, слышать).JSON",
-  "./Группа Движение и транспорт.JSON",
-  "./Группа Еда и напитки.JSON"
+  "./worldList_1.JSON"
 ];
 
 self.addEventListener("install", (e) => {
