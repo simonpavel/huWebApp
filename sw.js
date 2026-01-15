@@ -1,11 +1,9 @@
-const CACHE = "huwords-v10";
+const CACHE = "huwords-v11";
 const ASSETS = [
   "./",
   "./index.html",
-  "./manifest.json",
-  "./hu_worldList.json",
-  "./hu_vegetables_fruits.json",
-  "./hu_clothes.json"
+  "./manifest.json"
+  // JSON файлы не кэшируем, всегда загружаем свежие из сети
 ];
 
 self.addEventListener("install", (e) => {
@@ -23,6 +21,17 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  const url = new URL(e.request.url);
+  
+  // Для JSON файлов всегда запрашиваем из сети, не из кэша
+  if (url.pathname.endsWith('.json')) {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  
+  // Для остальных файлов используем кэш, если есть
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request))
   );

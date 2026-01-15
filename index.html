@@ -496,7 +496,17 @@
      ***************/
     async function loadWords(filename) {
       const res = await fetch(filename, { cache: "no-store" });
-      if (!res.ok) throw new Error("Cannot load " + filename);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Cannot load ${filename}: ${res.status} ${res.statusText}. Response: ${text.substring(0, 100)}`);
+      }
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Invalid content-type for ${filename}. Got: ${contentType}. Response: ${text.substring(0, 100)}`);
+      }
+      
       const base = await res.json();
 
       const customKey = STORAGE_CUSTOM_PREFIX + filename;
