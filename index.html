@@ -244,7 +244,7 @@
       line-height:1.2;
       font-weight:650;
       word-break:break-word;
-      padding-right:52px;
+      padding-right:202px;
       min-height:28px;
     }
 
@@ -253,31 +253,9 @@
       color:var(--muted);
     }
 
-    .starBtn{
+    .starBtn, .knowBtn, .repeatBtn, .speakBtn{
       position:absolute;
       top:10px;
-      right:10px;
-      width:42px;
-      height:42px;
-      border-radius:12px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid var(--border);
-      background:transparent;
-      font-size:20px;
-      line-height:1;
-    }
-
-    .starBtn.fav{
-      border-color:rgba(245,158,11,.35);
-      background:rgba(245,158,11,.12);
-    }
-
-    .speakBtn{
-      position:absolute;
-      top:10px;
-      right:58px;
       width:42px;
       height:42px;
       border-radius:12px;
@@ -289,6 +267,27 @@
       font-size:20px;
       line-height:1;
       cursor:pointer;
+    }
+
+    .starBtn{
+      right:10px;
+    }
+
+    .knowBtn{
+      right:58px;
+    }
+
+    .repeatBtn{
+      right:106px;
+    }
+
+    .speakBtn{
+      right:154px;
+    }
+
+    .starBtn.fav{
+      border-color:rgba(245,158,11,.35);
+      background:rgba(245,158,11,.12);
     }
 
     .badge{
@@ -381,9 +380,11 @@
           <div class="stat" id="statSeen">Seen: 0</div>
           <div class="stat" id="statFlipped">Flipped: 0</div>
           <div class="stat" id="statFav">Favorites: 0</div>
+          <div class="stat" id="statKnown">Known: 0</div>
+          <div class="stat" id="statRepeat">Repeat: 0</div>
         </div>
         <div class="progressActions">
-          <button class="btn-link" id="btnResetProgress">Reset progress</button>
+          <button class="btn-link" id="btnResetProgress">Reset all data</button>
         </div>
       </div>
     </section>
@@ -414,6 +415,7 @@
     const STORAGE_ONLYFAV = "hw_onlyfav_v2";
     const STORAGE_LAST_LIST = "hw_last_list_v2";
     const STORAGE_LAST_COUNT = "hw_last_count_v2";
+    const STORAGE_LEARNING = "hw_learning_v1";
 
     /***************
      * STATE
@@ -438,6 +440,8 @@
     const statSeen = document.getElementById("statSeen");
     const statFlipped = document.getElementById("statFlipped");
     const statFav = document.getElementById("statFav");
+    const statKnown = document.getElementById("statKnown");
+    const statRepeat = document.getElementById("statRepeat");
 
     const btnGenerate = document.getElementById("btnGenerate");
     const btnHU = document.getElementById("btnHU");
@@ -499,6 +503,71 @@
 
     function haptic() {
       if (navigator.vibrate) navigator.vibrate(10);
+    }
+
+    /***************
+     * LEARNING STATE
+     ***************/
+    function getLearningKey(listName, pairId) {
+      return `${listName}||${pairId}`;
+    }
+
+    function getLearningState(listName, pairId) {
+      const learning = readJSON(STORAGE_LEARNING, {});
+      const key = getLearningKey(listName, pairId);
+      return learning[key] || { known: 0, repeat: 0, lastMark: 0 };
+    }
+
+    function setLearningState(listName, pairId, mark) {
+      const learning = readJSON(STORAGE_LEARNING, {});
+      const key = getLearningKey(listName, pairId);
+      const current = learning[key] || { known: 0, repeat: 0, lastMark: 0 };
+      
+      if (mark === "known") {
+        current.known = (current.known || 0) + 1;
+      } else if (mark === "repeat") {
+        current.repeat = (current.repeat || 0) + 1;
+      }
+      
+      current.lastMark = Date.now();
+      learning[key] = current;
+      writeJSON(STORAGE_LEARNING, learning);
+      updateStats();
+    }
+
+    function getWordWeight(listName, pairId) {
+      const state = getLearningState(listName, pairId);
+      if (state.repeat > state.known) return 3;
+      if (state.known > state.repeat) return 0.25;
+      return 1;
+    }
+
+    function weightedRandomSelect(items, n, listName) {
+      if (items.length <= n) return items.slice();
+      
+      const weighted = items.map(item => ({
+        item,
+        weight: getWordWeight(listName, makePairId(item))
+      }));
+      
+      const selected = [];
+      const available = weighted.slice();
+      
+      for (let i = 0; i < n && available.length > 0; i++) {
+        const totalWeight = available.reduce((sum, w) => sum + w.weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (let j = 0; j < available.length; j++) {
+          random -= available[j].weight;
+          if (random <= 0) {
+            selected.push(available[j].item);
+            available.splice(j, 1);
+            break;
+          }
+        }
+      }
+      
+      return selected;
     }
 
     function speak(text, lang) {
@@ -630,10 +699,37 @@
       }
     }
 
-    function resetProgress() {
+    function resetAllData() {
+      // Clear all app-related localStorage keys
+      localStorage.removeItem(STORAGE_LAST);
+      localStorage.removeItem(STORAGE_FAVS);
+      localStorage.removeItem(STORAGE_PROGRESS);
+      localStorage.removeItem(STORAGE_THEME);
+      localStorage.removeItem(STORAGE_ONLYFAV);
+      localStorage.removeItem(STORAGE_LAST_LIST);
+      localStorage.removeItem(STORAGE_LAST_COUNT);
+      localStorage.removeItem(STORAGE_LEARNING);
+      
+      // Clear all custom word lists
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(STORAGE_CUSTOM_PREFIX)) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Reset state
       progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
-      saveProgress();
-      if (currentView.length) renderCards(currentView, { mode: "ru" });
+      favorites = new Set();
+      currentView = [];
+      lastGenerated = [];
+      
+      // Clear UI
+      outputEl.innerHTML = "";
+      renderEmpty("Натисни Go, щоб згенерувати слова 👆");
+      updateStats();
+      
+      // Reload page to ensure everything is reset
+      location.reload();
     }
 
     function updateStats() {
@@ -642,6 +738,19 @@
       statSeen.textContent = `Seen: ${seen}`;
       statFlipped.textContent = `Flipped: ${flipped}`;
       statFav.textContent = `Favorites: ${favorites.size}`;
+      
+      // Count Known and Repeat
+      const learning = readJSON(STORAGE_LEARNING, {});
+      let knownCount = 0;
+      let repeatCount = 0;
+      
+      Object.values(learning).forEach(state => {
+        if (state.known > state.repeat) knownCount++;
+        else if (state.repeat > state.known) repeatCount++;
+      });
+      
+      statKnown.textContent = `Known: ${knownCount}`;
+      statRepeat.textContent = `Repeat: ${repeatCount}`;
     }
 
     /***************
@@ -682,14 +791,21 @@
         const seenMark = progress.seen?.[id] ? "👀" : "";
         const flipMark = progress.flipped?.[id] ? "🔁" : "";
         
+        // Get learning state for this word
+        const learningState = getLearningState(selectedList, id);
+        const learningMark = learningState.known > learningState.repeat ? "✅ Know" : 
+                           learningState.repeat > learningState.known ? "🔁 Repeat" : "";
+        
         // Show 🔊 button only when Hungarian is visible
         const showSpeakBtn = mode === "hu" || mode === "both";
         const speakBtnStyle = mode === "ru" ? 'style="display:none;"' : '';
 
         return `
           <div class="wordCard" data-id="${escapeHtml(id)}" data-ru="${ru}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
-            <button class="speakBtn" title="Озвучити" ${speakBtnStyle}>🔊</button>
             <button class="starBtn ${favClass}" title="Обране">⭐</button>
+            <button class="knowBtn" title="Знаю">✅</button>
+            <button class="repeatBtn" title="Повторити">🔁</button>
+            <button class="speakBtn" title="Озвучити" ${speakBtnStyle}>🔊</button>
 
             <div class="wordTop">
               <div>
@@ -701,6 +817,7 @@
             <div class="badge">
               <span class="pill">${seenMark} Seen</span>
               <span class="pill">${flipMark} Flipped</span>
+              ${learningMark ? `<span class="pill">${learningMark}</span>` : ''}
             </div>
           </div>
         `;
@@ -716,8 +833,44 @@
         markSeen(entry);
 
         const starBtn = card.querySelector(".starBtn");
+        const knowBtn = card.querySelector(".knowBtn");
+        const repeatBtn = card.querySelector(".repeatBtn");
         const wordText = card.querySelector(".wordText");
         const speakBtn = card.querySelector(".speakBtn");
+
+        // Handle ✅ Know button
+        knowBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          haptic();
+          setLearningState(selectedList, id, "known");
+          // Update UI to show status
+          const pills = card.querySelectorAll(".pill");
+          if (pills.length >= 3) {
+            pills[2].textContent = "✅ Know";
+          } else if (pills.length === 2) {
+            const newPill = document.createElement("span");
+            newPill.className = "pill";
+            newPill.textContent = "✅ Know";
+            card.querySelector(".badge").appendChild(newPill);
+          }
+        });
+
+        // Handle 🔁 Repeat button
+        repeatBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          haptic();
+          setLearningState(selectedList, id, "repeat");
+          // Update UI to show status
+          const pills = card.querySelectorAll(".pill");
+          if (pills.length >= 3) {
+            pills[2].textContent = "🔁 Repeat";
+          } else if (pills.length === 2) {
+            const newPill = document.createElement("span");
+            newPill.className = "pill";
+            newPill.textContent = "🔁 Repeat";
+            card.querySelector(".badge").appendChild(newPill);
+          }
+        });
 
         // Handle 🔊 button click
         if (speakBtn) {
@@ -820,7 +973,7 @@
       localStorage.setItem(STORAGE_LAST_COUNT, String(n));
 
       const words = await loadWords(selectedList);
-      const picked = shuffle(words).slice(0, Math.min(n, words.length));
+      const picked = weightedRandomSelect(words, n, selectedList);
 
       lastGenerated = picked;
       writeJSON(STORAGE_LAST, picked);
@@ -927,7 +1080,9 @@
       btnClear.addEventListener("click", clearOutput);
       btnAdd.addEventListener("click", addWord);
       btnResetProgress.addEventListener("click", () => {
-        if (confirm("Скинути прогрес?")) resetProgress();
+        if (confirm("Скинути всі дані? Це видалить прогрес, обране, налаштування та всі збережені слова.")) {
+          resetAllData();
+        }
       });
 
       wordCountEl.addEventListener("keydown", (e) => {
@@ -938,6 +1093,7 @@
     window.addEventListener("load", async () => {
       loadFavorites();
       loadProgress();
+      updateStats();
       initPrefs();
       initSelect();
       bindButtons();
