@@ -700,11 +700,11 @@
     }
 
     function resetAllData() {
-      // Clear all app-related localStorage keys
+      // Clear all app-related localStorage keys (except theme preference)
       localStorage.removeItem(STORAGE_LAST);
       localStorage.removeItem(STORAGE_FAVS);
       localStorage.removeItem(STORAGE_PROGRESS);
-      localStorage.removeItem(STORAGE_THEME);
+      // STORAGE_THEME is kept - do not reset night mode preference
       localStorage.removeItem(STORAGE_ONLYFAV);
       localStorage.removeItem(STORAGE_LAST_LIST);
       localStorage.removeItem(STORAGE_LAST_COUNT);
