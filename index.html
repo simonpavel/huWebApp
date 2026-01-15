@@ -375,8 +375,9 @@
      * CONFIG
      ***************/
     const WORDLIST_FILES = [
-      "worldList_1.JSON",
-      "FruitsAndVegetables.JSON"
+      "hu_worldList.json",
+      "hu_vegetables_fruits.json",
+      "hu_clothes.json"
     ];
 
     /***************
@@ -513,7 +514,12 @@
     }
 
     function prettyListName(filename) {
-      return filename.replace(/\.json$/i, "").replace(/\.JSON$/i, "");
+      const nameMap = {
+        "hu_worldList.json": "Szavak",
+        "hu_vegetables_fruits.json": "Zöldségek és gyümölcsök",
+        "hu_clothes.json": "Ruházat"
+      };
+      return nameMap[filename] || filename.replace(/\.json$/i, "").replace(/\.JSON$/i, "");
     }
 
     /***************
