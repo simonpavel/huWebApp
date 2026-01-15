@@ -298,8 +298,7 @@
     }
 
     @media (prefers-color-scheme: dark){
-      :root:not([data-theme]){ /* якщо користувач не обирав вручну */
-        /* нічого — ми керуємо темою через JS, але це залишимо без сюрпризів */
+      :root:not([data-theme]){
       }
     }
   </style>
@@ -375,8 +374,6 @@
     /***************
      * CONFIG
      ***************/
-    // ВАЖЛИВО: імена файлів мають збігатися 1-в-1 з тим, як вони лежать на Cloudflare Pages.
-    // Рекомендація: використовувати латиницю і .json (у нижньому регістрі).
     const WORDLIST_FILES = [
       "worldList_1.JSON",
       "FruitsAndVegetables.JSON"
@@ -398,10 +395,10 @@
      * STATE
      ***************/
     let selectedList = WORDLIST_FILES[0];
-    let lastGenerated = []; // [{uk: hu}]
-    let currentView = [];   // array of entries currently rendered
+    let lastGenerated = [];
+    let currentView = [];
     let favorites = new Set();
-    let progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } }; // per-pair + totals
+    let progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
 
     /***************
      * DOM
@@ -433,10 +430,9 @@
     }
 
     function makePairId(entry) {
-      const uk = normalizeText(Object.keys(entry)[0]);
+      const ru = normalizeText(Object.keys(entry)[0]);
       const hu = normalizeText(Object.values(entry)[0]);
-      // стабільний ідентифікатор пари
-      return (uk + "||" + hu).toLowerCase();
+      return (ru + "||" + hu).toLowerCase();
     }
 
     function escapeHtml(s) {
@@ -478,7 +474,6 @@
     }
 
     function haptic() {
-      // легка вібрація на підтримуваних пристроях
       if (navigator.vibrate) navigator.vibrate(10);
     }
 
@@ -513,7 +508,7 @@
         const words = await loadWords(selectedList);
         countLabel.textContent = `${words.length} words • ${prettyListName(selectedList)}`;
       } catch (e) {
-        countLabel.textContent = `Помилка завантаження списку: ${prettyListName(selectedList)}`;
+        countLabel.textContent = `Помилка завантаження: ${prettyListName(selectedList)}`;
       }
     }
 
@@ -582,8 +577,15 @@
     function resetProgress() {
       progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
       saveProgress();
-      // перемалюємо, щоб бейджі/лічильники оновилися
-      if (currentView.length) renderCards(currentView, { mode: "uk" });
+      if (currentView.length) renderCards(currentView, { mode: "ru" });
+    }
+
+    function updateStats() {
+      const seen = progress?.totals?.seen ?? 0;
+      const flipped = progress?.totals?.flipped ?? 0;
+      statSeen.textContent = `Seen: ${seen}`;
+      statFlipped.textContent = `Flipped: ${flipped}`;
+      statFav.textContent = `Favorites: ${favorites.size}`;
     }
 
     /***************
@@ -593,7 +595,6 @@
       outputEl.innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
     }
 
-    // mode: "uk" (показуємо UK) | "hu" (показуємо HU) | "both" (UK — HU)
     function renderCards(entries, { mode }) {
       currentView = entries.slice();
 
@@ -603,32 +604,30 @@
       }
 
       const html = entries.map((entry) => {
-        const uk = escapeHtml(Object.keys(entry)[0]);
+        const ru = escapeHtml(Object.keys(entry)[0]);
         const hu = escapeHtml(Object.values(entry)[0]);
         const id = makePairId(entry);
         const favClass = favorites.has(id) ? "fav" : "";
 
-        // стартова сторона
-        let frontText = uk;
+        let frontText = ru;
         let backText = hu;
         let hint = "Tap → переклад";
 
         if (mode === "hu") {
           frontText = hu;
-          backText = uk;
+          backText = ru;
           hint = "Tap → переклад";
         } else if (mode === "both") {
-          frontText = `${uk} — ${hu}`;
-          backText = `${uk} — ${hu}`;
+          frontText = `${ru} — ${hu}`;
+          backText = `${ru} — ${hu}`;
           hint = "Tap → приховати/показати не потрібно";
         }
 
-        // бейдж прогресу (маленький, щоб не заважав)
         const seenMark = progress.seen?.[id] ? "👀" : "";
         const flipMark = progress.flipped?.[id] ? "🔁" : "";
 
         return `
-          <div class="wordCard" data-id="${escapeHtml(id)}" data-uk="${uk}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
+          <div class="wordCard" data-id="${escapeHtml(id)}" data-ru="${ru}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
             <button class="starBtn ${favClass}" title="Обране">⭐</button>
 
             <div class="wordTop">
@@ -648,51 +647,43 @@
 
       outputEl.innerHTML = html;
 
-      // події
       outputEl.querySelectorAll(".wordCard").forEach(card => {
         const id = card.getAttribute("data-id");
         const mode = card.getAttribute("data-mode");
 
-        const entry = { [card.getAttribute("data-uk")]: card.getAttribute("data-hu") };
-        // Seen фіксуємо при першому рендері
+        const entry = { [card.getAttribute("data-ru")]: card.getAttribute("data-hu") };
         markSeen(entry);
 
         const starBtn = card.querySelector(".starBtn");
         const wordText = card.querySelector(".wordText");
 
-        // ⭐ обране — окремий клік, без перевороту
         starBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           haptic();
           toggleFav(entry);
           starBtn.classList.toggle("fav", isFav(entry));
 
-          // якщо увімкнено фільтр "тільки обрані" — перерендеримо поточний вигляд
           if (onlyFavToggle.checked) {
             const filtered = currentView.filter(isFav);
             renderCards(filtered, { mode });
           } else {
-            // тільки оновимо бейджі
             updateStats();
           }
         });
 
-        // переворот по тапу на картку (крім режиму both)
         card.addEventListener("click", () => {
           if (mode === "both") return;
 
           haptic();
-          const uk = card.getAttribute("data-uk");
+          const ru = card.getAttribute("data-ru");
           const hu = card.getAttribute("data-hu");
 
           const isFront = wordText.getAttribute("data-side") === "front";
-          wordText.textContent = isFront ? hu : uk;
+          wordText.textContent = isFront ? hu : ru;
           wordText.setAttribute("data-side", isFront ? "back" : "front");
 
-          // рахуємо прогрес: вперше перевернув — зарахували
           if (isFront) markFlipped(entry);
 
-          // оновимо маленькі бейджі прямо в картці
           const pills = card.querySelectorAll(".pill");
           if (pills?.length >= 2) {
             pills[0].textContent = `${progress.seen?.[id] ? "👀" : ""} Seen`;
@@ -765,9 +756,8 @@
     function applyOnlyFavFilter() {
       localStorage.setItem(STORAGE_ONLYFAV, onlyFavToggle.checked ? "1" : "0");
 
-      // якщо зараз є показані слова — фільтруємо їх, інакше просто змінимо порожній екран
       if (currentView.length) {
-        const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || "uk";
+        const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || "ru";
         const filtered = onlyFavToggle.checked ? currentView.filter(isFav) : currentView;
         renderCards(filtered, { mode: modeGuess });
       } else {
@@ -801,7 +791,6 @@
     }
 
     function initPrefs() {
-      // тема
       const savedTheme = localStorage.getItem(STORAGE_THEME);
       if (savedTheme === "dark") applyTheme("dark");
       else applyTheme("light");
@@ -812,18 +801,16 @@
         applyTheme(theme);
       });
 
-      // only favorites
       const onlyFav = localStorage.getItem(STORAGE_ONLYFAV) === "1";
       onlyFavToggle.checked = onlyFav;
       onlyFavToggle.addEventListener("change", applyOnlyFavFilter);
 
-      // last count
       const savedCount = localStorage.getItem(STORAGE_LAST_COUNT);
       if (savedCount && /^\d+$/.test(savedCount)) wordCountEl.value = savedCount;
     }
 
     function bindButtons() {
-      btnGenerate.addEventListener("click", () => generate("uk"));
+      btnGenerate.addEventListener("click", () => generate("ru"));
       btnHU.addEventListener("click", () => generate("hu"));
       btnTranslate.addEventListener("click", translateLast);
       btnClear.addEventListener("click", clearOutput);
@@ -833,7 +820,7 @@
       });
 
       wordCountEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") generate("uk");
+        if (e.key === "Enter") generate("ru");
       });
     }
 
@@ -845,10 +832,6 @@
       bindButtons();
       updateStats();
       await updateCount();
-
-      // Якщо є збережені слова — можна не показувати автоматично, щоб не заважати
-      // Але якщо хочеш автозавантаження останнього — розкоментуй:
-      // translateLast();
     });
   </script>
 </body>
