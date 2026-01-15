@@ -377,8 +377,6 @@
     <section class="card">
       <div class="progress">
         <div class="stats">
-          <div class="stat" id="statSeen">Seen: 0</div>
-          <div class="stat" id="statFlipped">Flipped: 0</div>
           <div class="stat" id="statFav">Favorites: 0</div>
           <div class="stat" id="statKnown">Known: 0</div>
           <div class="stat" id="statRepeat">Repeat: 0</div>
@@ -437,8 +435,6 @@
     const onlyFavToggle = document.getElementById("onlyFavToggle");
     const themeToggle = document.getElementById("themeToggle");
 
-    const statSeen = document.getElementById("statSeen");
-    const statFlipped = document.getElementById("statFlipped");
     const statFav = document.getElementById("statFav");
     const statKnown = document.getElementById("statKnown");
     const statRepeat = document.getElementById("statRepeat");
@@ -733,10 +729,6 @@
     }
 
     function updateStats() {
-      const seen = progress?.totals?.seen ?? 0;
-      const flipped = progress?.totals?.flipped ?? 0;
-      statSeen.textContent = `Seen: ${seen}`;
-      statFlipped.textContent = `Flipped: ${flipped}`;
       statFav.textContent = `Favorites: ${favorites.size}`;
       
       // Count Known and Repeat
