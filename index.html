@@ -129,17 +129,48 @@
       outline:none;
     }
 
-    .row{
+    .row-top{
       display:grid;
-      grid-template-columns:1fr 84px;
+      grid-template-columns:1fr 80px;
       gap:8px;
       align-items:center;
     }
 
-    .buttons{
+    #wordCount{
+      width:80px;
+      font-size:14px;
+      padding:10px 8px;
+    }
+
+    .mode-toggle{
       display:grid;
-      grid-template-columns:repeat(3,1fr);
+      grid-template-columns:1fr 1fr;
       gap:8px;
+    }
+
+    .btn-mode{
+      padding:10px;
+      font-size:14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text);
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+
+    .btn-mode.active{
+      background:var(--primary);
+      border-color:var(--primary);
+      color:var(--primaryText);
+      font-weight:600;
+    }
+
+    .row-actions{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:center;
     }
 
     button{
@@ -349,16 +380,18 @@
 
     <section class="card">
       <div class="controls">
-        <select id="wordlistSelect"></select>
-
-        <div class="row">
-          <input type="number" id="wordCount" value="10" min="1" inputmode="numeric" />
-          <button class="btn-main" id="btnGenerate">Go</button>
+        <div class="row-top">
+          <select id="wordlistSelect"></select>
+          <input type="number" id="wordCount" value="10" min="1" inputmode="numeric" placeholder="Words" />
         </div>
 
-        <div class="buttons">
-          <button class="btn-secondary" id="btnHU">HU</button>
-          <button class="btn-secondary" id="btnTranslate">Translate</button>
+        <div class="mode-toggle">
+          <button class="btn-mode" id="btnModeUA" data-mode="ru">Ukrainian</button>
+          <button class="btn-mode" id="btnModeHU" data-mode="hu">Hungarian</button>
+        </div>
+
+        <div class="row-actions">
+          <button class="btn-main" id="btnGenerate">Go</button>
           <button class="btn-clear" id="btnClear">Clear</button>
         </div>
       </div>
@@ -414,6 +447,7 @@
     const STORAGE_LAST_LIST = "hw_last_list_v2";
     const STORAGE_LAST_COUNT = "hw_last_count_v2";
     const STORAGE_LEARNING = "hw_learning_v1";
+    const STORAGE_MODE = "hw_mode_v1";
 
     /***************
      * STATE
@@ -423,6 +457,7 @@
     let currentView = [];
     let favorites = new Set();
     let progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
+    let currentMode = "ru"; // "ru" or "hu"
 
     /***************
      * DOM
@@ -440,8 +475,8 @@
     const statRepeat = document.getElementById("statRepeat");
 
     const btnGenerate = document.getElementById("btnGenerate");
-    const btnHU = document.getElementById("btnHU");
-    const btnTranslate = document.getElementById("btnTranslate");
+    const btnModeUA = document.getElementById("btnModeUA");
+    const btnModeHU = document.getElementById("btnModeHU");
     const btnClear = document.getElementById("btnClear");
     const btnAdd = document.getElementById("btnAdd");
     const btnResetProgress = document.getElementById("btnResetProgress");
@@ -1037,6 +1072,20 @@
       });
     }
 
+    function setMode(mode) {
+      currentMode = mode;
+      localStorage.setItem(STORAGE_MODE, mode);
+      
+      // Update UI
+      if (mode === "ru") {
+        btnModeUA.classList.add("active");
+        btnModeHU.classList.remove("active");
+      } else {
+        btnModeHU.classList.add("active");
+        btnModeUA.classList.remove("active");
+      }
+    }
+
     function initPrefs() {
       const savedTheme = localStorage.getItem(STORAGE_THEME);
       if (savedTheme === "dark") applyTheme("dark");
@@ -1054,12 +1103,20 @@
 
       const savedCount = localStorage.getItem(STORAGE_LAST_COUNT);
       if (savedCount && /^\d+$/.test(savedCount)) wordCountEl.value = savedCount;
+
+      // Restore language mode
+      const savedMode = localStorage.getItem(STORAGE_MODE);
+      if (savedMode === "hu" || savedMode === "ru") {
+        setMode(savedMode);
+      } else {
+        setMode("ru"); // default
+      }
     }
 
     function bindButtons() {
-      btnGenerate.addEventListener("click", () => generate("ru"));
-      btnHU.addEventListener("click", () => generate("hu"));
-      btnTranslate.addEventListener("click", translateLast);
+      btnGenerate.addEventListener("click", () => generate(currentMode));
+      btnModeUA.addEventListener("click", () => setMode("ru"));
+      btnModeHU.addEventListener("click", () => setMode("hu"));
       btnClear.addEventListener("click", clearOutput);
       btnAdd.addEventListener("click", addWord);
       btnResetProgress.addEventListener("click", () => {
@@ -1069,7 +1126,7 @@
       });
 
       wordCountEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") generate("ru");
+        if (e.key === "Enter") generate(currentMode);
       });
     }
 
