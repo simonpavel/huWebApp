@@ -1,4 +1,4 @@
-const CACHE = "huwords-v11";
+const CACHE = "huwords-v12";
 const ASSETS = [
   "./",
   "./index.html",
