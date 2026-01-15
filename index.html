@@ -788,9 +788,6 @@
           hint = "Tap → приховати/показати не потрібно";
         }
 
-        const seenMark = progress.seen?.[id] ? "👀" : "";
-        const flipMark = progress.flipped?.[id] ? "🔁" : "";
-        
         // Get learning state for this word
         const learningState = getLearningState(selectedList, id);
         const learningMark = learningState.known > learningState.repeat ? "✅ Know" : 
@@ -815,8 +812,6 @@
             </div>
 
             <div class="badge">
-              <span class="pill">${seenMark} Seen</span>
-              <span class="pill">${flipMark} Flipped</span>
               ${learningMark ? `<span class="pill">${learningMark}</span>` : ''}
             </div>
           </div>
@@ -844,14 +839,15 @@
           haptic();
           setLearningState(selectedList, id, "known");
           // Update UI to show status
+          const badge = card.querySelector(".badge");
           const pills = card.querySelectorAll(".pill");
-          if (pills.length >= 3) {
-            pills[2].textContent = "✅ Know";
-          } else if (pills.length === 2) {
+          if (pills.length > 0) {
+            pills[0].textContent = "✅ Know";
+          } else {
             const newPill = document.createElement("span");
             newPill.className = "pill";
             newPill.textContent = "✅ Know";
-            card.querySelector(".badge").appendChild(newPill);
+            badge.appendChild(newPill);
           }
         });
 
@@ -861,14 +857,15 @@
           haptic();
           setLearningState(selectedList, id, "repeat");
           // Update UI to show status
+          const badge = card.querySelector(".badge");
           const pills = card.querySelectorAll(".pill");
-          if (pills.length >= 3) {
-            pills[2].textContent = "🔁 Repeat";
-          } else if (pills.length === 2) {
+          if (pills.length > 0) {
+            pills[0].textContent = "🔁 Repeat";
+          } else {
             const newPill = document.createElement("span");
             newPill.className = "pill";
             newPill.textContent = "🔁 Repeat";
-            card.querySelector(".badge").appendChild(newPill);
+            badge.appendChild(newPill);
           }
         });
 
@@ -947,12 +944,6 @@
           }
 
           if (isFront) markFlipped(entry);
-
-          const pills = card.querySelectorAll(".pill");
-          if (pills?.length >= 2) {
-            pills[0].textContent = `${progress.seen?.[id] ? "👀" : ""} Seen`;
-            pills[1].textContent = `${progress.flipped?.[id] ? "🔁" : ""} Flipped`;
-          }
         });
       });
 
