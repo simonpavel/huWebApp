@@ -274,6 +274,23 @@
       background:rgba(245,158,11,.12);
     }
 
+    .speakBtn{
+      position:absolute;
+      top:10px;
+      right:58px;
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--border);
+      background:transparent;
+      font-size:20px;
+      line-height:1;
+      cursor:pointer;
+    }
+
     .badge{
       display:inline-flex;
       align-items:center;
@@ -484,6 +501,23 @@
       if (navigator.vibrate) navigator.vibrate(10);
     }
 
+    function speak(text, lang) {
+      if (!('speechSynthesis' in window)) {
+        alert("Ваш браузер не підтримує озвучення");
+        return;
+      }
+      
+      // Cancel any previous speech
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "hu-HU";
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      
+      window.speechSynthesis.speak(utterance);
+    }
+
     /***************
      * THEME
      ***************/
@@ -647,9 +681,14 @@
 
         const seenMark = progress.seen?.[id] ? "👀" : "";
         const flipMark = progress.flipped?.[id] ? "🔁" : "";
+        
+        // Show 🔊 button only when Hungarian is visible
+        const showSpeakBtn = mode === "hu" || mode === "both";
+        const speakBtnStyle = mode === "ru" ? 'style="display:none;"' : '';
 
         return `
           <div class="wordCard" data-id="${escapeHtml(id)}" data-ru="${ru}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
+            <button class="speakBtn" title="Озвучити" ${speakBtnStyle}>🔊</button>
             <button class="starBtn ${favClass}" title="Обране">⭐</button>
 
             <div class="wordTop">
@@ -678,6 +717,37 @@
 
         const starBtn = card.querySelector(".starBtn");
         const wordText = card.querySelector(".wordText");
+        const speakBtn = card.querySelector(".speakBtn");
+
+        // Handle 🔊 button click
+        if (speakBtn) {
+          speakBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            haptic();
+            const hu = card.getAttribute("data-hu");
+            const currentText = wordText.textContent;
+            
+            // Extract Hungarian text based on mode
+            let textToSpeak = hu;
+            if (mode === "both") {
+              // Extract HU part from "UA — HU" format
+              const parts = currentText.split(" — ");
+              if (parts.length === 2) {
+                textToSpeak = parts[1].trim();
+              }
+            } else if (mode === "hu") {
+              // If HU is on front, speak current text; if flipped, speak HU
+              const isFront = wordText.getAttribute("data-side") === "front";
+              textToSpeak = isFront ? currentText : hu;
+            } else if (mode === "ru") {
+              // If flipped to show HU, speak current text; otherwise speak HU
+              const isFront = wordText.getAttribute("data-side") === "front";
+              textToSpeak = isFront ? hu : currentText;
+            }
+            
+            speak(textToSpeak, "hu-HU");
+          });
+        }
 
         starBtn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -707,10 +777,21 @@
           if (mode === "hu") {
             wordText.textContent = isFront ? ru : hu;
           } else {
-            wordText.textContent = isFront ? hu : ru;
+          wordText.textContent = isFront ? hu : ru;
           }
           
           wordText.setAttribute("data-side", isFront ? "back" : "front");
+          
+          // Show/hide 🔊 button based on whether Hungarian is visible
+          if (mode === "ru" && speakBtn) {
+            const newIsFront = wordText.getAttribute("data-side") === "front";
+            // In "ru" mode: show 🔊 when flipped (HU visible), hide when on front (UA visible)
+            if (newIsFront) {
+              speakBtn.style.display = "none";
+            } else {
+              speakBtn.style.display = "flex";
+            }
+          }
 
           if (isFront) markFlipped(entry);
 
