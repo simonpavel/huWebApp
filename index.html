@@ -679,7 +679,15 @@
           const hu = card.getAttribute("data-hu");
 
           const isFront = wordText.getAttribute("data-side") === "front";
-          wordText.textContent = isFront ? hu : ru;
+          
+          // При режиме HU: фронт = венгерский, переворот = украинский
+          // При режиме RU: фронт = украинский, переворот = венгерский
+          if (mode === "hu") {
+            wordText.textContent = isFront ? ru : hu;
+          } else {
+            wordText.textContent = isFront ? hu : ru;
+          }
+          
           wordText.setAttribute("data-side", isFront ? "back" : "front");
 
           if (isFront) markFlipped(entry);
