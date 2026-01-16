@@ -553,15 +553,35 @@
       const learning = readJSON(STORAGE_LEARNING, {});
       const key = getLearningKey(listName, pairId);
       const current = learning[key] || { known: 0, repeat: 0, lastMark: 0 };
+      const isKnown = current.known > current.repeat;
+      const isRepeat = current.repeat > current.known;
       
       if (mark === "known") {
-        current.known = (current.known || 0) + 1;
+        if (isKnown) {
+          // Already "known" - toggle off: remove the mark
+          delete learning[key];
+        } else {
+          // Switch to "known" (from "repeat" or unmarked)
+          // This will decrease repeat count and increase known count
+          current.known = 1;
+          current.repeat = 0;
+          current.lastMark = Date.now();
+          learning[key] = current;
+        }
       } else if (mark === "repeat") {
-        current.repeat = (current.repeat || 0) + 1;
+        if (isRepeat) {
+          // Already "repeat" - toggle off: remove the mark
+          delete learning[key];
+        } else {
+          // Switch to "repeat" (from "known" or unmarked)
+          // This will decrease known count and increase repeat count
+          current.repeat = 1;
+          current.known = 0;
+          current.lastMark = Date.now();
+          learning[key] = current;
+        }
       }
       
-      current.lastMark = Date.now();
-      learning[key] = current;
       writeJSON(STORAGE_LEARNING, learning);
       updateStats();
     }
@@ -868,12 +888,18 @@
           // Update UI to show status
           const badge = card.querySelector(".badge");
           const pills = card.querySelectorAll(".pill");
-          if (pills.length > 0) {
-            pills[0].textContent = "✅ Know";
-          } else {
+          const learningState = getLearningState(selectedList, id);
+          const learningMark = learningState.known > learningState.repeat ? "✅ Know" : 
+                             learningState.repeat > learningState.known ? "🔁 Repeat" : "";
+          
+          // Remove all pills first
+          pills.forEach(pill => pill.remove());
+          
+          // Add pill if there's a mark
+          if (learningMark) {
             const newPill = document.createElement("span");
             newPill.className = "pill";
-            newPill.textContent = "✅ Know";
+            newPill.textContent = learningMark;
             badge.appendChild(newPill);
           }
         });
@@ -886,12 +912,18 @@
           // Update UI to show status
           const badge = card.querySelector(".badge");
           const pills = card.querySelectorAll(".pill");
-          if (pills.length > 0) {
-            pills[0].textContent = "🔁 Repeat";
-          } else {
+          const learningState = getLearningState(selectedList, id);
+          const learningMark = learningState.known > learningState.repeat ? "✅ Know" : 
+                             learningState.repeat > learningState.known ? "🔁 Repeat" : "";
+          
+          // Remove all pills first
+          pills.forEach(pill => pill.remove());
+          
+          // Add pill if there's a mark
+          if (learningMark) {
             const newPill = document.createElement("span");
             newPill.className = "pill";
-            newPill.textContent = "🔁 Repeat";
+            newPill.textContent = learningMark;
             badge.appendChild(newPill);
           }
         });
