@@ -279,6 +279,15 @@
       min-height:28px;
     }
 
+    .wordTextSecondary{
+      font-size:16px;
+      line-height:1.3;
+      color:var(--muted);
+      margin-top:6px;
+      font-weight:400;
+      word-break:break-word;
+    }
+
     .hint{
       font-size:12px;
       color:var(--muted);
@@ -367,6 +376,10 @@
       </div>
 
       <div class="toggles">
+        <label class="chip" title="Режим навчання">
+          <input type="checkbox" id="learningModeToggle" />
+          📚
+        </label>
         <label class="chip" title="Тільки обрані">
           <input type="checkbox" id="onlyFavToggle" />
           ⭐
@@ -448,6 +461,7 @@
     const STORAGE_LAST_COUNT = "hw_last_count_v2";
     const STORAGE_LEARNING = "hw_learning_v1";
     const STORAGE_MODE = "hw_mode_v1";
+    const STORAGE_LEARNING_MODE = "hw_learning_mode_v1";
 
     /***************
      * STATE
@@ -467,6 +481,7 @@
     const countLabel = document.getElementById("countLabel");
 
     const wordCountEl = document.getElementById("wordCount");
+    const learningModeToggle = document.getElementById("learningModeToggle");
     const onlyFavToggle = document.getElementById("onlyFavToggle");
     const themeToggle = document.getElementById("themeToggle");
 
@@ -815,6 +830,8 @@
         return;
       }
 
+      const isLearningMode = learningModeToggle.checked;
+      
       const html = entries.map((entry) => {
         const ua = escapeHtml(Object.keys(entry)[0]);
         const hu = escapeHtml(Object.values(entry)[0]);
@@ -823,12 +840,25 @@
 
         let frontText = ua;
         let backText = hu;
+        let secondaryText = "";
         let hint = "Tap → переклад";
 
         if (mode === "hu") {
           frontText = hu;
           backText = ua;
-          hint = "Tap → переклад";
+          if (isLearningMode) {
+            secondaryText = ua;
+            hint = "Обидва слова видимі";
+          } else {
+            hint = "Tap → переклад";
+          }
+        } else if (mode === "ua") {
+          if (isLearningMode) {
+            secondaryText = hu;
+            hint = "Обидва слова видимі";
+          } else {
+            hint = "Tap → переклад";
+          }
         } else if (mode === "both") {
           frontText = `${ua} — ${hu}`;
           backText = `${ua} — ${hu}`;
@@ -841,11 +871,11 @@
                            learningState.repeat > learningState.known ? "🔁 Repeat" : "";
         
         // Show 🔊 button only when Hungarian is visible
-        const showSpeakBtn = mode === "hu" || mode === "both";
-        const speakBtnStyle = mode === "ua" ? 'style="display:none;"' : '';
+        const showSpeakBtn = mode === "hu" || mode === "both" || (mode === "ua" && isLearningMode);
+        const speakBtnStyle = (mode === "ua" && !isLearningMode) ? 'style="display:none;"' : '';
 
         return `
-          <div class="wordCard" data-id="${escapeHtml(id)}" data-ua="${ua}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
+          <div class="wordCard" data-id="${escapeHtml(id)}" data-ua="${ua}" data-hu="${hu}" data-mode="${escapeHtml(mode)}" data-learning-mode="${isLearningMode}">
             <button class="starBtn ${favClass}" title="Обране">⭐</button>
             <button class="knowBtn" title="Знаю">✅</button>
             <button class="repeatBtn" title="Повторити">🔁</button>
@@ -854,6 +884,7 @@
             <div class="wordTop">
               <div>
                 <div class="wordText" data-side="front">${frontText}</div>
+                ${isLearningMode && secondaryText ? `<div class="wordTextSecondary">${secondaryText}</div>` : ''}
                 <div class="hint">${hint}</div>
               </div>
             </div>
@@ -934,11 +965,15 @@
             e.stopPropagation();
             haptic();
             const hu = card.getAttribute("data-hu");
+            const isLearningMode = card.getAttribute("data-learning-mode") === "true";
             const currentText = wordText.textContent;
             
             // Extract Hungarian text based on mode
             let textToSpeak = hu;
-            if (mode === "both") {
+            if (isLearningMode) {
+              // In learning mode, always speak Hungarian (it's always visible)
+              textToSpeak = hu;
+            } else if (mode === "both") {
               // Extract HU part from "UA — HU" format
               const parts = currentText.split(" — ");
               if (parts.length === 2) {
@@ -974,10 +1009,16 @@
 
         card.addEventListener("click", () => {
           if (mode === "both") return;
+          
+          const isLearningMode = card.getAttribute("data-learning-mode") === "true";
+          
+          // In learning mode, don't flip - both words are already visible
+          if (isLearningMode) return;
 
           haptic();
           const ua = card.getAttribute("data-ua");
           const hu = card.getAttribute("data-hu");
+          const wordTextSecondary = card.querySelector(".wordTextSecondary");
 
           const isFront = wordText.getAttribute("data-side") === "front";
           
@@ -1177,6 +1218,17 @@
       const onlyFav = localStorage.getItem(STORAGE_ONLYFAV) === "1";
       onlyFavToggle.checked = onlyFav;
       onlyFavToggle.addEventListener("change", applyOnlyFavFilter);
+
+      const learningMode = localStorage.getItem(STORAGE_LEARNING_MODE) === "1";
+      learningModeToggle.checked = learningMode;
+      learningModeToggle.addEventListener("change", () => {
+        localStorage.setItem(STORAGE_LEARNING_MODE, learningModeToggle.checked ? "1" : "0");
+        // Re-render cards with new learning mode
+        if (currentView.length > 0) {
+          const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || currentMode;
+          renderCards(currentView, { mode: modeGuess });
+        }
+      });
 
       const savedCount = localStorage.getItem(STORAGE_LAST_COUNT);
       if (savedCount && /^\d+$/.test(savedCount)) wordCountEl.value = savedCount;
