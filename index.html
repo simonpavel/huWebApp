@@ -386,7 +386,7 @@
         </div>
 
         <div class="mode-toggle">
-          <button class="btn-mode" id="btnModeUA" data-mode="ru">Ukrainian</button>
+          <button class="btn-mode" id="btnModeUA" data-mode="ua">Ukrainian</button>
           <button class="btn-mode" id="btnModeHU" data-mode="hu">Hungarian</button>
         </div>
 
@@ -457,7 +457,7 @@
     let currentView = [];
     let favorites = new Set();
     let progress = { seen: {}, flipped: {}, totals: { seen: 0, flipped: 0 } };
-    let currentMode = "ru"; // "ru" or "hu"
+    let currentMode = "ua"; // "ua" or "hu"
 
     /***************
      * DOM
@@ -489,9 +489,9 @@
     }
 
     function makePairId(entry) {
-      const ru = normalizeText(Object.keys(entry)[0]);
+      const ua = normalizeText(Object.keys(entry)[0]);
       const hu = normalizeText(Object.values(entry)[0]);
-      return (ru + "||" + hu).toLowerCase();
+      return (ua + "||" + hu).toLowerCase();
     }
 
     function escapeHtml(s) {
@@ -816,22 +816,22 @@
       }
 
       const html = entries.map((entry) => {
-        const ru = escapeHtml(Object.keys(entry)[0]);
+        const ua = escapeHtml(Object.keys(entry)[0]);
         const hu = escapeHtml(Object.values(entry)[0]);
         const id = makePairId(entry);
         const favClass = favorites.has(id) ? "fav" : "";
 
-        let frontText = ru;
+        let frontText = ua;
         let backText = hu;
         let hint = "Tap → переклад";
 
         if (mode === "hu") {
           frontText = hu;
-          backText = ru;
+          backText = ua;
           hint = "Tap → переклад";
         } else if (mode === "both") {
-          frontText = `${ru} — ${hu}`;
-          backText = `${ru} — ${hu}`;
+          frontText = `${ua} — ${hu}`;
+          backText = `${ua} — ${hu}`;
           hint = "Tap → приховати/показати не потрібно";
         }
 
@@ -842,10 +842,10 @@
         
         // Show 🔊 button only when Hungarian is visible
         const showSpeakBtn = mode === "hu" || mode === "both";
-        const speakBtnStyle = mode === "ru" ? 'style="display:none;"' : '';
+        const speakBtnStyle = mode === "ua" ? 'style="display:none;"' : '';
 
         return `
-          <div class="wordCard" data-id="${escapeHtml(id)}" data-ru="${ru}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
+          <div class="wordCard" data-id="${escapeHtml(id)}" data-ua="${ua}" data-hu="${hu}" data-mode="${escapeHtml(mode)}">
             <button class="starBtn ${favClass}" title="Обране">⭐</button>
             <button class="knowBtn" title="Знаю">✅</button>
             <button class="repeatBtn" title="Повторити">🔁</button>
@@ -871,7 +871,7 @@
         const id = card.getAttribute("data-id");
         const mode = card.getAttribute("data-mode");
 
-        const entry = { [card.getAttribute("data-ru")]: card.getAttribute("data-hu") };
+        const entry = { [card.getAttribute("data-ua")]: card.getAttribute("data-hu") };
         markSeen(entry);
 
         const starBtn = card.querySelector(".starBtn");
@@ -948,7 +948,7 @@
               // If HU is on front, speak current text; if flipped, speak HU
               const isFront = wordText.getAttribute("data-side") === "front";
               textToSpeak = isFront ? currentText : hu;
-            } else if (mode === "ru") {
+            } else if (mode === "ua") {
               // If flipped to show HU, speak current text; otherwise speak HU
               const isFront = wordText.getAttribute("data-side") === "front";
               textToSpeak = isFront ? hu : currentText;
@@ -976,25 +976,25 @@
           if (mode === "both") return;
 
           haptic();
-          const ru = card.getAttribute("data-ru");
+          const ua = card.getAttribute("data-ua");
           const hu = card.getAttribute("data-hu");
 
           const isFront = wordText.getAttribute("data-side") === "front";
           
           // При режиме HU: фронт = венгерский, переворот = украинский
-          // При режиме RU: фронт = украинский, переворот = венгерский
+          // При режиме UA: фронт = украинский, переворот = венгерский
           if (mode === "hu") {
-            wordText.textContent = isFront ? ru : hu;
+            wordText.textContent = isFront ? ua : hu;
           } else {
-          wordText.textContent = isFront ? hu : ru;
+          wordText.textContent = isFront ? hu : ua;
           }
           
           wordText.setAttribute("data-side", isFront ? "back" : "front");
           
           // Show/hide 🔊 button based on whether Hungarian is visible
-          if (mode === "ru" && speakBtn) {
+          if (mode === "ua" && speakBtn) {
             const newIsFront = wordText.getAttribute("data-side") === "front";
-            // In "ru" mode: show 🔊 when flipped (HU visible), hide when on front (UA visible)
+            // In "ua" mode: show 🔊 when flipped (HU visible), hide when on front (UA visible)
             if (newIsFront) {
               speakBtn.style.display = "none";
             } else {
@@ -1154,7 +1154,7 @@
       localStorage.setItem(STORAGE_MODE, mode);
       
       // Update UI
-      if (mode === "ru") {
+      if (mode === "ua") {
         btnModeUA.classList.add("active");
         btnModeHU.classList.remove("active");
       } else {
@@ -1183,16 +1183,20 @@
 
       // Restore language mode
       const savedMode = localStorage.getItem(STORAGE_MODE);
-      if (savedMode === "hu" || savedMode === "ru") {
+      // Support both old "ru" and new "ua" for backward compatibility
+      if (savedMode === "hu" || savedMode === "ua") {
         setMode(savedMode);
+      } else if (savedMode === "ru") {
+        // Migrate old "ru" to "ua"
+        setMode("ua");
       } else {
-        setMode("ru"); // default
+        setMode("ua"); // default
       }
     }
 
     function bindButtons() {
       btnGenerate.addEventListener("click", () => generate(currentMode));
-      btnModeUA.addEventListener("click", () => setMode("ru"));
+      btnModeUA.addEventListener("click", () => setMode("ua"));
       btnModeHU.addEventListener("click", () => setMode("hu"));
       btnClear.addEventListener("click", clearOutput);
       btnAdd.addEventListener("click", addWord);
