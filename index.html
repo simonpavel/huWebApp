@@ -1022,14 +1022,31 @@
       localStorage.setItem(STORAGE_LAST_LIST, selectedList);
       localStorage.setItem(STORAGE_LAST_COUNT, String(n));
 
-      const words = await loadWords(selectedList);
-      const picked = weightedRandomSelect(words, n, selectedList);
-
-      lastGenerated = picked;
-      writeJSON(STORAGE_LAST, picked);
-
-      const view = onlyFavToggle.checked ? picked.filter(isFav) : picked;
-      renderCards(view, { mode });
+      // If favorites filter is on, load all words from all lists and show only favorites
+      if (onlyFavToggle.checked) {
+        const allWords = [];
+        for (const listFile of WORDLIST_FILES) {
+          try {
+            const words = await loadWords(listFile);
+            allWords.push(...words);
+          } catch (e) {
+            console.error(`Error loading ${listFile}:`, e);
+          }
+        }
+        
+        const favoriteWords = allWords.filter(isFav);
+        lastGenerated = favoriteWords;
+        writeJSON(STORAGE_LAST, favoriteWords);
+        renderCards(favoriteWords, { mode });
+      } else {
+        // Normal generation from selected list
+        const words = await loadWords(selectedList);
+        const picked = weightedRandomSelect(words, n, selectedList);
+        lastGenerated = picked;
+        writeJSON(STORAGE_LAST, picked);
+        renderCards(picked, { mode });
+      }
+      
       await updateCount();
     }
 
@@ -1067,15 +1084,38 @@
     /***************
      * FILTER: ONLY FAVORITES
      ***************/
-    function applyOnlyFavFilter() {
+    async function applyOnlyFavFilter() {
       localStorage.setItem(STORAGE_ONLYFAV, onlyFavToggle.checked ? "1" : "0");
 
-      if (currentView.length) {
-        const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || "ru";
-        const filtered = onlyFavToggle.checked ? currentView.filter(isFav) : currentView;
-        renderCards(filtered, { mode: modeGuess });
+      if (onlyFavToggle.checked) {
+        // Load all words from all lists and filter by favorites
+        const allWords = [];
+        for (const listFile of WORDLIST_FILES) {
+          try {
+            const words = await loadWords(listFile);
+            allWords.push(...words);
+          } catch (e) {
+            console.error(`Error loading ${listFile}:`, e);
+          }
+        }
+        
+        // Filter to show only favorites
+        const favoriteWords = allWords.filter(isFav);
+        
+        if (favoriteWords.length > 0) {
+          const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || currentMode;
+          renderCards(favoriteWords, { mode: modeGuess });
+        } else {
+          renderEmpty("Поки немає обраних ⭐");
+        }
       } else {
-        renderEmpty(onlyFavToggle.checked ? "Поки немає обраних ⭐" : "Натисни Go, щоб згенерувати слова 👆");
+        // If filter is off, restore the last generated view or show empty
+        if (lastGenerated.length > 0) {
+          const modeGuess = outputEl.querySelector(".wordCard")?.getAttribute("data-mode") || currentMode;
+          renderCards(lastGenerated, { mode: modeGuess });
+        } else {
+          renderEmpty("Натисни Go, щоб згенерувати слова 👆");
+        }
       }
     }
 
@@ -1100,7 +1140,12 @@
         selectedList = selectEl.value;
         localStorage.setItem(STORAGE_LAST_LIST, selectedList);
         await updateCount();
-        clearOutput();
+        // If favorites filter is on, reload all favorites
+        if (onlyFavToggle.checked) {
+          await applyOnlyFavFilter();
+        } else {
+          clearOutput();
+        }
       });
     }
 
@@ -1171,6 +1216,11 @@
       bindButtons();
       updateStats();
       await updateCount();
+      
+      // If favorites filter is enabled, load all favorites
+      if (onlyFavToggle.checked) {
+        await applyOnlyFavFilter();
+      }
     });
   </script>
 </body>
